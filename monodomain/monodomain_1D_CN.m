@@ -20,7 +20,7 @@ function [] = monodomain_1D_CN()
   % effective conductivity
   sigma_eff = 3.828; %3.828; % mS/cm 
   % time step for the PDE
-  time_step = 0.1; % default: 0.1 ms
+  time_step = 0.001; % default: 0.1 ms
   % stop time
   t_end = 10; % ms
   % start time of stimulation
