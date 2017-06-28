@@ -70,7 +70,7 @@ function [] = monodomain_2015_01_03_v2()
   for i=start_stim:stop_stim
     for j=1:size(stim_pnts,1)
       node = stim_pnts(j);
-      i_Stim(node,i) = 1;%200;
+      i_Stim(node,i) = 200;%200;
     end
   end
   
