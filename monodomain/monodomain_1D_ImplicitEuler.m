@@ -29,9 +29,9 @@ function [] = monodomain_1D_ImplicitEuler()
   D=sigma_eff/A_m/C_m;
   
   % time step for the PDE
-  time_step_pde = 0.001;
+  time_step_pde = 0.05;
 % time step for the ODE
-  time_step_ode = 0.001;
+ % time_step_ode = 0.05;
 
   % stop time
   t_end = 5.0; % ms
@@ -55,7 +55,11 @@ function [] = monodomain_1D_ImplicitEuler()
   % number of time steps for dynamic PDE solver
   num_of_dt = t_end/time_step_pde;
   % the time step number at which the stimulation starts
-  start_stim = t_start_stimulation/time_step_pde;
+  if(t_start_stimulation ~= 0.0) 
+    start_stim = t_start_stimulation/time_step_pde;
+  else
+    start_stim=1;
+  end
   % the time step number at which the stimulation stops
   stop_stim = t_end_stimulation/time_step_pde;
 
@@ -187,7 +191,7 @@ function [] = monodomain_1D_ImplicitEuler()
 
   end %time
   
-  OutToFile(V_m_time,t_out,time_step,method); 
+  OutToFile(V_m_time,t_out,time_step_pde,method); 
   
   tt = linspace(0,t_end,num_of_dt);
   x_a = linspace(0,1,num_of_points);

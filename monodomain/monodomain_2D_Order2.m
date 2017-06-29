@@ -1,5 +1,5 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [] = monodomain_1D_Order1()
+function [] = monodomain_1D_Order2()
 
 
 %% THIS HAS NEVER BEEN USED FOR THE PHD THESIS AND IS COPIED FROM "COMPUATATIONAL METHODS IN BIOMECHANICS" ASSINGMENT 3 %%% 
@@ -10,28 +10,28 @@ function [] = monodomain_1D_Order1()
   %------------------------------------------------------------------------
   % SETTINGS
   %------------------------------------------------------------------------
-  %number of elements
+  % number of elements in each direction
   n_elem=24;
-  % number of grid points
+  % number of grid points in each direction
   n=n_elem+1;
   % total number of grid points
-  num_of_points = n;
+  num_of_points = n*n;
   
   % Length
   L=1; %cm
   % grid spacing
   dx = L/n; % cm
   
-   % end time
-  t_end = 5.0; % ms
+  % end time
+  t_end = 10.0; % ms
   % time step for the PDE
   time_step_pde = 0.05;
   % number of time steps for dynamic PDE solver
   num_of_steps_pde = t_end/time_step_pde;
-  % number of ODE runs per one time step of PDE
+  % number of ODE steps per one time step of PDE
   num_of_steps_ode=1;
   
-  method='ImplicitEuler';
+  method='CN';
  
   %frequency of stimulation
   %f=60;
@@ -39,10 +39,7 @@ function [] = monodomain_1D_Order1()
   % stimulation points
   %stim_pnts = zeros(n);
   % here, only one node in the middle of the domain is stimulated!!!
-  stim_pnts(1) = ceil(num_of_points/2);
-  % arbitrary stimulation point
-  %x_stim=0.1;
-  %stim_pnts(1) = ceil(x_stim/dx);
+  stim_pnts(1) = ceil(num_of_points/2); %take care that the point is not on the boundary
   
   % start time of stimulation
   t_start_stimulation = 0.0;
@@ -50,10 +47,13 @@ function [] = monodomain_1D_Order1()
   t_end_stimulation = 0.1;
   
   %fast twitch
-  I_stim=2000*(n/24);
+  I_stim=2000*(n_elem/24)^2 % 24 elements are chosen as reference
   
   %output time
-  t_out=3;%ms  
+  t_out=3;%ms
+  
+  % arbitrary output node
+  out_node=13;
   
   %------------------------------------------------------------------------
   %MATERIAL PARAMETERS
@@ -63,7 +63,7 @@ function [] = monodomain_1D_Order1()
   % membrane capacitance, fast-twitch
   C_m = 1.0; % microF/cm^2
   % effective conductivity
-  sigma_eff = 3.828; %3.828; % mS/cm 
+  sigma_eff = 3.828; % mS/cm 
   % Diffusion coeff.
   D=sigma_eff/A_m/C_m;
   
@@ -88,7 +88,8 @@ function [] = monodomain_1D_Order1()
   V_m = -75*ones(num_of_points,1);
   % transmembrane voltage at the output node for each time step
   V_m_time = zeros(num_of_steps_pde,num_of_points);
-  
+  % V_m at the output node
+  V_m_out= zeros(num_of_steps_pde,1);
   %------------------------------------------------------------------------
   % CELLULAR MODEL
   % variables in cellular model:
@@ -114,6 +115,12 @@ function [] = monodomain_1D_Order1()
     ALL_STATES(i,:) = INIT_STATES;
   end
   
+  % video
+  %------------------------------------------------------------------------
+  figure(1);
+  writerObj=VideoWriter('monodomain-2D-Order2.avi');
+  open(writerObj);
+  
   %------------------------------------------------------------------------
   % STIMULATION
   %------------------------------------------------------------------------
@@ -124,49 +131,79 @@ function [] = monodomain_1D_Order1()
       length(stim_pnts);
       i_Stim(node,i) = I_stim;
     end
-  end
+  end 
   
   %------------------------------------------------------------------------
   %DISCRETIZATION OF PDE
-  %------------------------------------------------------------------
+  %------------------------------------------------------------------------
   % STIFFNESS MATRIX
   % first order dynamic problem -->  KK * V_m = bb
-  KK= StiffnessMatrix(method,num_of_points,time_step_pde,dx,D); 
+  KK= StiffnessMatrix_2D(method,num_of_points,time_step_pde,dx,D); 
   
-  %---------------------------------------------------------------------
+  %------------------------------------------------------------------------
   % SOLUTION PROCESS
-  %--------------------------------------------------------------------- 
+  %------------------------------------------------------------------------ 
   % loop over the PDE time steps
-  for time = 1:num_of_steps_pde
+  for time = 1:num_of_steps_pde 
+    %for time = 1:1  
     
     fprintf('step #   : %d \t', time);
     fprintf('time [ms]: %f \n', (time-1)*time_step_pde);
     
-    % Set timespan to integrate over the ODE
-    tspan = (time-1):1/ num_of_steps_ode:time;
+    % Set half of the timespan to integrate over the ODE
+    tspan = (time-1):0.5/ (num_of_steps_ode):(time-0.5);
     tspan=tspan*time_step_pde;
     
     % Integrate the cellular model at each discretisation point
-    [V_m,ALL_STATES] =SolveCellular(1,time,num_of_points,ALL_STATES,CONSTANTS,i_Stim,tspan); 
+    [V_m,ALL_STATES] =SolveCellular(2,time,num_of_points,ALL_STATES,CONSTANTS,i_Stim,tspan); 
     
+    %----------------------------------------------------------------------
     % PARABOLIC EQUATION
-    bb=setRHS(method,V_m,time_step_pde,dx,D);
+    bb=setRHS_2D(method,V_m,time_step_pde,dx,D);
     % SOLVE THE PARABOLIC PDE
     V_m = KK\bb;
     
-    %---------------------------------------------------------------------
+    %----------------------------------------------------------------------
+    % update the cell models transmembrane voltage
+    ALL_STATES(:,1)  = V_m; 
+    
+    % Set halsf of the timespan to integrate over the ODE
+    tspan = (time-0.5):0.5/ num_of_steps_ode:time;
+    tspan=tspan*time_step_pde;
+    % Integrate the cellular model at each discretisation point
+    [V_m,ALL_STATES] =SolveCellular(2,time,num_of_points,ALL_STATES,CONSTANTS,i_Stim,tspan); 
+    
+    %----------------------------------------------------------------------
     % update the cell models transmembrane voltage
     ALL_STATES(:,1)  = V_m;
     % store the transmembrane voltage at the output node
     V_m_time(time,:) = V_m;
-
+    % store the transmembrane voltage at the output node
+    V_m_out(time)=V_m(out_node);
+    
+    y_a = (0:1/(n-1):1);
+    x_a = y_a;
+    u = zeros(n,n);
+    for i = 1:n
+      u(:,i) = V_m((i-1)*n+1:i*n);
+    end
+    
+    clf;
+    surf(meshgrid(x_a)',meshgrid(y_a),u);
+    axis([0 1 0 1 -100 40 0 1]);
+    drawnow;
+    thisimage=getframe;
+    writeVideo(writerObj,thisimage);
+    
   end %time
   
-  OutToFile(V_m_time,t_out,time_step_pde,method); 
+  close(writerObj);
   
+  figure(9999);
   tt = linspace(0,t_end,num_of_steps_pde);
-  x_a = linspace(0,L,num_of_points);
-  surf(x_a,tt,V_m_time);
+  plot(tt, V_m_out);
+  
+  OutToFile(V_m_time,t_out,time_step_pde,method); 
   
 end
 

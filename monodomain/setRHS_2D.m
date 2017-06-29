@@ -11,15 +11,7 @@ function [bb]=setRHS_2D(method,V_m,time_step,dx,D)
     elseif strcmp(method,'CN')
         fact = 0.5*time_step/dx^2 * D;
         for i=n+1:n*n-n
-            if i>n
-                bb(i) = fact;
-            end
-            bb(i-1) = fact;
-            bb(i) =  1+4*fact;
-            bb(i+1) = fact;
-            if i<n*n-n+1
-                bb(i) = fact;
-            end
+            bb(i) =  (1-4*fact)*V_m(i)+fact*(V_m(i-1)+V_m(i+1)+V_m(i-n)+V_m(i+n));   
         end
     end
            

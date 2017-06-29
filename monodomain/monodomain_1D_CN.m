@@ -48,7 +48,7 @@ function [] = monodomain_1D_CN()
   % the time step number at which the stimulation starts
   %start_stim = t_start_stimulation/time_step;
   if(t_start_stimulation ~= 0.0) 
-    start_stim = t_start_stimulation/time_step_pde
+    start_stim = t_start_stimulation/time_step_pde;
   else
     start_stim=1;
   end

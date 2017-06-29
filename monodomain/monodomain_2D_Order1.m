@@ -39,10 +39,7 @@ function [] = monodomain_1D_Order1()
   % stimulation points
   %stim_pnts = zeros(n);
   % here, only one node in the middle of the domain is stimulated!!!
-  stim_pnts(1) = ceil(num_of_points/2)%check if the point s not on the boundary
-  %stim_pnts(1) = 25;
-  %x_stim=0.1;
-  %stim_pnts(1) = ceil(x_stim/dx);
+  stim_pnts(1) = ceil(num_of_points/2); %check if the point s not on the boundary
   
   % start time of stimulation
   t_start_stimulation = 0.0;
@@ -50,12 +47,12 @@ function [] = monodomain_1D_Order1()
   t_end_stimulation = 0.1;
   
   %fast twitch
-  I_stim=2000*(n/24)^2;
+  I_stim=2000*(n/24)^2; %24 elements are chosen as reference
   
-  %output time
+  % arbitrary output time
   t_out=3;%ms
   
-  %output node
+  % arbitrary output node
   out_node=13;
   
   %------------------------------------------------------------------------
@@ -93,9 +90,6 @@ function [] = monodomain_1D_Order1()
   V_m_time = zeros(num_of_steps_pde,num_of_points);
   % V_m at the output node
   V_m_out= zeros(num_of_steps_pde,1);
-  figure(1);
-  writerObj=VideoWriter('Monodomain.avi');
-  open(writerObj)
   
   %------------------------------------------------------------------------
   % CELLULAR MODEL
@@ -122,6 +116,12 @@ function [] = monodomain_1D_Order1()
     ALL_STATES(i,:) = INIT_STATES;
   end
   
+  % video
+  %------------------------------------------------------------------------
+  figure(1);
+  writerObj=VideoWriter('monodomain-2D-Order1.avi');
+  open(writerObj);
+  
   %------------------------------------------------------------------------
   % STIMULATION
   %------------------------------------------------------------------------
@@ -133,6 +133,7 @@ function [] = monodomain_1D_Order1()
       i_Stim(node,i) = I_stim;
     end
   end 
+  
   %------------------------------------------------------------------------
   %DISCRETIZATION OF PDE
   %------------------------------------------------------------------------
@@ -154,28 +155,7 @@ function [] = monodomain_1D_Order1()
     tspan=tspan*time_step_pde;
     
     % Integrate the cellular model at each discretisation point
-    for point = 1:num_of_points
-      
-      % load the last state as initial state for the next integration
-      LAST_STATES = ALL_STATES(point,:);
-      
-      %---------------------------------------------------------------------
-      % INTEGRATE CELLULAR MODEL WITH ODE SOLVER     
-      [STATES] = ode1(@(VOI, STATES)computeRates_HODGKIN_HUXLEY(VOI, STATES, CONSTANTS, i_Stim(point,time)), tspan, LAST_STATES);
-
-      % Compute algebraic variables
-%      [RATES, ALGEBRAIC] = computeRates_HODGKIN_HUXLEY(VOI, STATES, CONSTANTS, i_stim(point,time));
-%      ALGEBRAIC = computeAlgebraic_HODGKIN_HUXLEY(ALGEBRAIC, CONSTANTS, STATES, VOI, I_HH(point,time));
-      
-      % update ALL_STATES
-      ALL_STATES(point,:) = STATES(end,:);
-      % update transmembrane voltage of cellular model
-      vS_hh(point,1) = STATES(end,1);
-      
-    end % points
-
-    % update the transmembrane voltage V_m
-    V_m = vS_hh;
+    [V_m,ALL_STATES] =SolveCellular(1,time,num_of_points,ALL_STATES,CONSTANTS,i_Stim,tspan); 
     
     % PARABOLIC EQUATION
     bb=setRHS_2D(method,V_m,time_step_pde,dx,D); 
@@ -196,37 +176,24 @@ function [] = monodomain_1D_Order1()
     for i = 1:n
       u(:,i) = V_m((i-1)*n+1:i*n);
     end
-    %surf(meshgrid(x_a)',meshgrid(y_a),u);
-    %figure(1);
+   
     clf;
     surf(meshgrid(x_a)',meshgrid(y_a),u);
     axis([0 1 0 1 -100 40 0 1]);
-    %refresh(1);
     drawnow;
-    %MV(time)=getframe;
     thisimage=getframe;
     writeVideo(writerObj,thisimage);
 
    end %time
   
-  OutToFile(V_m_time,t_out,time_step_pde,method); 
-  %figure
-  %movie(MV,num_of_steps_pde);
+   close(writerObj);
+   
+   figure(9999);
+   tt = linspace(0,t_end,num_of_steps_pde);
+   plot(tt, V_m_out);
   
-  tt = linspace(0,t_end,num_of_steps_pde);
-%   x_a = linspace(0,L,n);
-%   y_a=linspace(0,L,n);
-%   u = zeros(n,n);
-%   for i = 1:n
-%       u(:,i) = V_m_time(t_end,(i-1)*n+1:i*n);
-%   end
-% figure(time);
-% surf(meshgrid(x_a)',meshgrid(y_a),u);
-close(writerObj);
-V_m_out  
-figure(999);
-plot(tt, V_m_out);
-  
+   OutToFile(V_m_time,t_out,time_step_pde,method); 
+    
 end
 
 function []=OutToFile(V_m_time,t_out,time_step,method)

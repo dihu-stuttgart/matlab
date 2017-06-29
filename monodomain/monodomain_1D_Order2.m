@@ -10,9 +10,9 @@ function [] = monodomain_1D_Order2()
   %------------------------------------------------------------------------
   % SETTINGS
   %------------------------------------------------------------------------
-  % number of 
+  % number of elements
   n_elem=24;
-  % number of grid points in each direction
+  % number of grid points
   n=n_elem+1;
   % total number of grid points
   num_of_points = n;
@@ -29,7 +29,7 @@ function [] = monodomain_1D_Order2()
   % number of time steps for dynamic PDE solver
   num_of_steps_pde = t_end/time_step_pde;
   % number of ODE steps per one time step of PDE
-  num_of_steps_ode=10;
+  num_of_steps_ode=1;
   
   method='CN';
  
