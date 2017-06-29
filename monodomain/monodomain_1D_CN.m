@@ -10,7 +10,7 @@ function [] = monodomain_1D_CN()
   %------------------------------------------------------------------
   % SET PARAMETERS
   % number of grid points in each direction
-  n=200;%default 10
+  n=25;%default 10
   % total number of grid points
   num_of_points = n;
   % surface area to volume ratio
@@ -20,13 +20,13 @@ function [] = monodomain_1D_CN()
   % effective conductivity
   sigma_eff = 3.828; %3.828; % mS/cm 
   % time step for the PDE
-  time_step = 0.001; % default: 0.1 ms
+  time_step = 0.05; % default: 0.1 ms
   % stop time
   t_end = 10; % ms
   % start time of stimulation
-  t_start_stimulation = 0.1; % default:0.2 ms
+  t_start_stimulation = 0.0; % default:0.2 ms
   % stop time of stimulation
-  t_end_stimulation = 0.2; % default: 0.7ms
+  t_end_stimulation = 0.1; % default: 0.7ms
   %t_end_stimulation = t_start_stimulation;
   % Length
   L=1; %cm default: 0.0625
@@ -46,7 +46,12 @@ function [] = monodomain_1D_CN()
   % number of time steps for dynamic PDE solver
   num_of_dt = t_end/time_step;
   % the time step number at which the stimulation starts
-  start_stim = t_start_stimulation/time_step;
+  %start_stim = t_start_stimulation/time_step;
+  if(t_start_stimulation ~= 0.0) 
+    start_stim = t_start_stimulation/time_step_pde
+  else
+    start_stim=1;
+  end
   % the time step number at which the stimulation stops
   stop_stim = t_end_stimulation/time_step;
 
@@ -95,9 +100,6 @@ function [] = monodomain_1D_CN()
   % number of algebraic variables in the system
   global algebraicVariableCount;  
   algebraicVariableCount = getAlgebraicVariableCount('HODGKIN_HUXLEY');
-
-  % Set numerical accuracy options for ODE solver
-  options = odeset('RelTol', 1e-06, 'AbsTol', 1e-06, 'MaxStep', 0.1);
   
   % Initialise constants and state variables for cellular model
   [CONSTANTS] = initConsts('HODGKIN_HUXLEY');
@@ -130,7 +132,7 @@ function [] = monodomain_1D_CN()
     % CELLULAR MODEL
     %---------------------------------------------------------------------
     
-    [V_m,ALL_STATES] =SolveCellular(time,num_of_points,ALL_STATES,CONSTANTS,i_Stim,tspan,options);  
+    [V_m,ALL_STATES] =SolveCellular(2,time,num_of_points,ALL_STATES,CONSTANTS,i_Stim,tspan);  
     
     %---------------------------------------------------------------------
     % PARABOLIC EQUATION
@@ -159,7 +161,7 @@ function [] = monodomain_1D_CN()
     % CELLULAR MODEL
     %---------------------------------------------------------------------
     
-    [V_m,ALL_STATES] =SolveCellular(time,num_of_points,ALL_STATES,CONSTANTS,i_Stim,tspan,options);    
+    [V_m,ALL_STATES] =SolveCellular(2,time,num_of_points,ALL_STATES,CONSTANTS,i_Stim,tspan);    
     
     % store the transmembrane voltage at the output node
     V_m_time(time,:) = V_m;
@@ -174,7 +176,7 @@ function [] = monodomain_1D_CN()
   
 end
 
-function [vS_hh,ALL_STATES]= SolveCellular(time,num_of_points,ALL_STATES,CONSTANTS,i_Stim,tspan,options)
+function [vS_hh,ALL_STATES]= SolveCellular(order,time,num_of_points,ALL_STATES,CONSTANTS,i_Stim,tspan)
 vS_hh = zeros(num_of_points,1);
 
 % Integrate the cellular model at each discretisation point
@@ -187,14 +189,15 @@ vS_hh = zeros(num_of_points,1);
       % INTEGRATE CELLULAR MODEL WITH ODE/DAE SOLVER
       % NOTE: no timestep for the integration of the cellular model has to
       % be provided. MATLAB chooses an appropriate time step
-      
-      [VOI, STATES] = ode15s(@(VOI, STATES)computeRates_HODGKIN_HUXLEY(VOI, STATES, CONSTANTS, i_Stim(point,time)), tspan, LAST_STATES, options);
-%       if (point==1)
-%       STATES
-%       end
-      % Compute algebraic variables
-%      [RATES, ALGEBRAIC] = computeRates_HODGKIN_HUXLEY(VOI, STATES, CONSTANTS, i_stim(point,time));
-%      ALGEBRAIC = computeAlgebraicHODGKIN_HUXLEY(ALGEBRAIC, CONSTANTS, STATES, VOI, I_HH(point,time));
+      if(order==1)
+      [STATES] = ode1(@(VOI, STATES)computeRates_HODGKIN_HUXLEY(VOI, STATES, CONSTANTS, i_Stim(point,time)), tspan, LAST_STATES); 
+      else
+          if(order==2)
+      [STATES] = ode2(@(VOI, STATES)computeRates_HODGKIN_HUXLEY(VOI, STATES, CONSTANTS, i_Stim(point,time)), tspan, LAST_STATES);
+          else
+              fprintf('orders 1 and 2 are supported');
+          end
+      end
       
       % update ALL_STATES
       ALL_STATES(point,:) = STATES(end,:);

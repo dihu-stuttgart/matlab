@@ -2,7 +2,7 @@ function [KK]= StiffnessMatrix(method,num_of_points,time_step,dx,D)
 % stiffness matrix
   KK = zeros(num_of_points,num_of_points);
   n=num_of_points;
-  
+    
   % introduce factor for compact notation
   if strcmp(method,'ImplicitEuler')      
       fact = time_step/dx^2 * D;      

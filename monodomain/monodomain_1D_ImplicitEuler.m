@@ -10,51 +10,59 @@ function [] = monodomain_1D_ImplicitEuler()
   %------------------------------------------------------------------
   % SET PARAMETERS
   % number of grid points in each direction
-  n=200;%default 10
+  n=24;%default 10
   % total number of grid points
   num_of_points = n;
-  % surface area to volume ratio
-  A_m = 500.0; % /cm
-  % membrane capacitance
-  C_m = 1.0; % microF/cm^2
-  % effective conductivity
-  sigma_eff = 3.828; %3.828; % mS/cm 
-  % time step for the PDE
-  time_step = 0.025; % default: 0.1 ms
-  % stop time
-  t_end = 10.0; % ms
-  % start time of stimulation
-  t_start_stimulation = 0.1; % default:0.2 ms
-  % stop time of stimulation
-  t_end_stimulation = 0.2; % default: 0.7ms
-  %t_end_stimulation = t_start_stimulation;
+  
   % Length
   L=1; %cm
   % grid spacing
   dx = L/n; % cm
+  
+  % surface area to volume ratio
+  A_m = 500.0; % /cm
+  % membrane capacitance, fast-twitch
+  C_m = 1.0; % microF/cm^2
+  % effective conductivity
+  sigma_eff = 3.828; %3.828; % mS/cm 
   % Diffusion coeff.
   D=sigma_eff/A_m/C_m;
   
+  % time step for the PDE
+  time_step_pde = 0.001;
+% time step for the ODE
+  time_step_ode = 0.001;
+
+  % stop time
+  t_end = 5.0; % ms
+  
+  %frequency of stimulation
+  %f=60;
+  
+  % start time of stimulation
+  t_start_stimulation = 0.0;
+  % stop time of stimulation
+  t_end_stimulation = 0.1;
+  
+  %fast twitch
+  I_stim=2000;
+  
   %output time
-  t_out=3;%ms
-  
-  % output node number
-  %out_node = 3;
-  
+  t_out=3;%ms  
   
   %------------------------------------------------------------------
   % INITIALISE VARIABLES
   % number of time steps for dynamic PDE solver
-  num_of_dt = t_end/time_step;
+  num_of_dt = t_end/time_step_pde;
   % the time step number at which the stimulation starts
-  start_stim = t_start_stimulation/time_step;
+  start_stim = t_start_stimulation/time_step_pde;
   % the time step number at which the stimulation stops
-  stop_stim = t_end_stimulation/time_step;
+  stop_stim = t_end_stimulation/time_step_pde;
 
   % stimulation points
   %stim_pnts = zeros(n);
-  % here, only one node is stimulated!!!
-  stim_pnts(1) = 2;
+  % here, only one node in the middle of the domain is stimulated!!!
+  stim_pnts(1) = ceil(n/2.0);
   % stimulation curtent
   i_Stim = zeros(num_of_points,num_of_dt); 
   
@@ -71,7 +79,7 @@ function [] = monodomain_1D_ImplicitEuler()
   for i=start_stim:stop_stim
     for j=1:length(stim_pnts)
       node = stim_pnts(j);
-      i_Stim(node,i) = 2000;%1 not enough stimulation
+      i_Stim(node,i) = I_stim;%1 not enough stimulation
     end
   end
   
@@ -82,7 +90,7 @@ function [] = monodomain_1D_ImplicitEuler()
   %------------------------------------------------------------------
   % STIFFNESS MATRIX
   % first order dynamic problem -->  KK * V_m = bb
-  KK= StiffnessMatrix(method,num_of_points,time_step,dx,D);
+  KK= StiffnessMatrix(method,num_of_points,time_step_pde,dx,D);
   
   %---------------------------------------------------------------------
   % CELLULAR MODEL
@@ -100,7 +108,7 @@ function [] = monodomain_1D_ImplicitEuler()
   algebraicVariableCount = getAlgebraicVariableCount('HODGKIN_HUXLEY');
 
   % Set numerical accuracy options for ODE solver
-  options = odeset('RelTol', 1e-06, 'AbsTol', 1e-06, 'MaxStep', 0.1);
+  options = odeset('RelTol', 1e-06, 'AbsTol', 1e-06, 'MaxStep', time_step_pde);
   
   % Initialise constants and state variables for cellular model
   [CONSTANTS] = initConsts('HODGKIN_HUXLEY');
@@ -120,13 +128,13 @@ function [] = monodomain_1D_ImplicitEuler()
   % loop over the PDE time steps
   for time = 1:num_of_dt
     
-    fprintf('step #   : %d \t', time);
-    fprintf('time [ms]: %f \n', (time-1)*time_step);
+    %fprintf('step #   : %d \t', time);
+    %fprintf('time [ms]: %f \n', (time-1)*time_step);
     % Set timespan to integrate over 
     % NOTE: this does not affect the time step for the ODE/DAE integration
     % but only specifies the times for the output. 
     % [first last] returns values at all integration time steps!!!
-    tspan = [(time-1)*time_step, (time-0.5)*time_step, time*time_step];
+    tspan = [(time-1)*time_step_pde, (time-0.5)*time_step_pde, time*time_step_pde];
 
     %---------------------------------------------------------------------
     % CELLULAR MODEL
