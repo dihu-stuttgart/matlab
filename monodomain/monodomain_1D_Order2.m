@@ -11,7 +11,7 @@ function [] = monodomain_1D_Order2()
   % SETTINGS
   %------------------------------------------------------------------------
   % number of elements
-  n_elem=24;
+  n_elem=2048;
   % number of grid points
   n=n_elem+1;
   % total number of grid points
@@ -25,7 +25,7 @@ function [] = monodomain_1D_Order2()
   % end time
   t_end = 10.0; % ms
   % time step for the PDE
-  time_step_pde = 0.05;
+  time_step_pde = 0.01;
   % number of time steps for dynamic PDE solver
   num_of_steps_pde = t_end/time_step_pde;
   % number of ODE steps per one time step of PDE
@@ -47,10 +47,14 @@ function [] = monodomain_1D_Order2()
   % start time of stimulation
   t_start_stimulation = 0.0;
   % stop time of stimulation
-  t_end_stimulation = 0.1;
+  t_end_stimulation = 0.5;
   
-  %fast twitch
-  I_stim=2000*(n_elem/24)%24 elements is used as reference
+  %fast-twitch
+  if(n_elem>16)
+      I_stim=75*(n_elem/16); %the reference case must be adjusted by experimenting
+  else
+      I_stim=75;
+  end
   
   %output time
   t_out=3;%ms  

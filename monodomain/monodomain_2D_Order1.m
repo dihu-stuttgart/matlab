@@ -29,7 +29,7 @@ function [] = monodomain_1D_Order1()
   % number of time steps for dynamic PDE solver
   num_of_steps_pde = t_end/time_step_pde;
   % number of ODE runs per one time step of PDE
-  num_of_steps_ode=50;
+  num_of_steps_ode=1;
   
   method='ImplicitEuler';
  
