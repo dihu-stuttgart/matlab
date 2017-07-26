@@ -23,11 +23,11 @@ function [] = monodomain_1D_Order2()
   dx = L/n; % cm
   
   % end time
-  t_end = 10.0; % ms
+  t_end = 5.0; % ms
   % time step for the PDE
-  time_step_pde = 0.01;
+  time_step_pde = 0.00075;
   % number of time steps for dynamic PDE solver
-  num_of_steps_pde = t_end/time_step_pde;
+  num_of_steps_pde = round(t_end/time_step_pde);
   % number of ODE steps per one time step of PDE
   num_of_steps_ode=1;
   
@@ -58,6 +58,9 @@ function [] = monodomain_1D_Order2()
   
   %output time
   t_out=3;%ms  
+  
+  % arbitrary output node
+  out_node=300;
   
   %------------------------------------------------------------------------
   %MATERIAL PARAMETERS
@@ -92,6 +95,8 @@ function [] = monodomain_1D_Order2()
   V_m = -75*ones(num_of_points,1);
   % transmembrane voltage at the output node for each time step
   V_m_time = zeros(num_of_steps_pde,num_of_points);
+  % V_m at the output node
+  V_m_out= zeros(num_of_steps_pde,1);
   
   %------------------------------------------------------------------------
   % CELLULAR MODEL
@@ -174,21 +179,31 @@ function [] = monodomain_1D_Order2()
     ALL_STATES(:,1)  = V_m;
     % store the transmembrane voltage at the output node
     V_m_time(time,:) = V_m;
+    % store the transmembrane voltage at the output node
+    V_m_out(time)=V_m(out_node);
 
   end %time
   
-  OutToFile(V_m_time,t_out,time_step_pde,method); 
+  OutToFile(V_m_time,t_out,time_step_pde,n_elem); 
   
   tt = linspace(0,t_end,num_of_steps_pde);
   x_a = linspace(0,L,num_of_points);
   surf(x_a,tt,V_m_time);
+  %savefig(strcat('monodomain_',num2str(time_step_pde),'_O2.fig'));
+  print(strcat('plot_',num2str(time_step_pde),'_O2'),'-dpng');
+  
+  
+  figure(99);
+  tt = linspace(0,t_end,num_of_steps_pde);
+  plot(tt, V_m_out);
+  %savefig(strcat('profile',num2str(time_step_pde),'_O2.fig'));
+  print(strcat('profile',num2str(time_step_pde),'_O2'),'-dpng');
   
 end
 
-function []=OutToFile(V_m_time,t_out,time_step,method)
-time=t_out/time_step;
+function []=OutToFile(V_m_time,t_out,timestep,n_elem)
+time=t_out/timestep;
 
-outfile=fopen(strcat('out','Vm_',num2str(time_step),'_',method,'.txt'),'w');
-fprintf(outfile,'t_end=%f\ntime_step=%f\n',t_out,time_step);
+outfile=fopen(strcat('out','Vm_dt_',num2str(timestep),'_n_',num2str(n_elem),'_O2.txt'),'w');
 fprintf(outfile,'%6.6f\n',V_m_time(time,:));
 end
