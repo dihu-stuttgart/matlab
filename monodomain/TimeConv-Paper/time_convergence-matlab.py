@@ -130,8 +130,9 @@ def makeplot_TimeConv_err(x,y,labels):
     plt.loglog(x[i],abline_values,sl_lines[i],label=sl_labels[i],linewidth=3)
   
   #plt.title("Vm")
-  plt.xlabel('Time step, $\Delta t$',{'fontsize':20})
+  plt.xlabel('Time step, $dt$',{'fontsize':20})
   plt.xticks(size=18)
+  plt.xlim(left=0.0001,right=1)
   plt.ylabel('Relative L2-norm error of $V_m$',{'fontsize':20})
   plt.yticks(size=18)
   plt.legend()
